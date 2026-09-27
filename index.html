@@ -7,290 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-      --bg-color: #050b08;
-      --panel-bg: #0d1a12;
-      --border-color: #00ff66;
-      --text-primary: #00ff66;
-      --text-muted: #00993d;
-      --accent-alert: #ff3366;
-      --accent-warn: #ffb000;
-      --accent-info: #00e5ff;
-      --font-mono: 'Fira Code', 'Courier New', monospace;
-    }
-
-    body.theme-amber {
-      --bg-color: #0f0900; --panel-bg: #1c1202; --border-color: #ffb000;
-      --text-primary: #ffb000; --text-muted: #996a00; --accent-alert: #ff4444;
-    }
-    body.theme-cyan {
-      --bg-color: #020d14; --panel-bg: #051a26; --border-color: #00e5ff;
-      --text-primary: #00e5ff; --text-muted: #008ba3; --accent-alert: #ff2a6d;
-    }
-    body.theme-dracula {
-      --bg-color: #120e17; --panel-bg: #1f1829; --border-color: #bd93f9;
-      --text-primary: #ff79c6; --text-muted: #8be9fd; --accent-alert: #ff5555;
-    }
-    body.theme-mono {
-      --bg-color: #0a0a0a; --panel-bg: #171717; --border-color: #e5e5e5;
-      --text-primary: #f5f5f5; --text-muted: #a3a3a3; --accent-alert: #ffffff;
-    }
-    body.theme-cappuccino {
-      --bg-color: #120d0a; --panel-bg: #211813; --border-color: #d7ba9d;
-      --text-primary: #e8d3c0; --text-muted: #a38a75; --accent-alert: #d97706;
-    }
-
-    html, body {
-      width: 100%; height: 100%; max-height: 100vh;
-      overflow: hidden; overscroll-behavior: none; touch-action: manipulation;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-
-    body {
-      background-color: var(--bg-color); color: var(--text-primary);
-      font-family: var(--font-mono); padding: 10px; max-width: 650px;
-      margin: 0 auto; display: flex; flex-direction: column;
-    }
-
-    .terminal-header {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      border-radius: 8px 8px 0 0; padding: 10px 14px; display: flex;
-      justify-content: space-between; align-items: center; border-bottom: none;
-    }
-    .window-dots { display: flex; gap: 6px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot.red { background: #ff5f56; } .dot.yellow { background: #ffbd2e; } .dot.green { background: #27c93f; }
-    .terminal-title { font-size: 0.75rem; color: var(--text-muted); font-weight: bold; }
-
-    .status-bar {
-      background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);
-      padding: 8px 12px; font-size: 0.7rem; display: flex; justify-content: space-between;
-    }
-
-    .terminal-container {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      border-radius: 0 0 8px 8px; padding: 14px; flex: 1; display: flex;
-      flex-direction: column; overflow: hidden;
-    }
-
-    .nav-tabs {
-      display: flex; gap: 6px; margin-bottom: 12px;
-      border-bottom: 1px solid var(--border-color); padding-bottom: 8px; overflow-x: auto;
-    }
-    .tab-btn {
-      background: transparent; border: 1px solid var(--border-color);
-      color: var(--text-primary); padding: 6px 10px; font-family: var(--font-mono);
-      font-size: 0.7rem; cursor: pointer; border-radius: 4px; white-space: nowrap;
-    }
-    .tab-btn.active { background: var(--border-color); color: #000; font-weight: bold; }
-
-    /* Barra de Búsqueda y Filtros */
-    .filter-bar {
-      display: flex; gap: 6px; margin-bottom: 10px;
-    }
-    .input-tui {
-      background: rgba(0,0,0,0.5); border: 1px solid var(--border-color);
-      color: var(--text-primary); font-family: var(--font-mono); font-size: 0.75rem;
-      padding: 6px 8px; border-radius: 3px; outline: none; width: 100%;
-    }
-
-    /* Área de Scroll Interna */
-    .tab-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .scrollable-area {
-      flex: 1; overflow-y: auto; overscroll-behavior-y: contain; padding-right: 4px;
-    }
-    .scrollable-area::-webkit-scrollbar { width: 4px; }
-    .scrollable-area::-webkit-scrollbar-thumb { background: var(--border-color); }
-
-    .log-card {
-      background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color);
-      border-left: 4px solid var(--text-primary); border-radius: 4px;
-      padding: 10px; margin-bottom: 10px;
-    }
-    .log-card.read { border-left-color: var(--text-muted); opacity: 0.8; }
-    .log-header { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 6px; }
-    .log-body { font-size: 0.75rem; line-height: 1.4; margin-bottom: 8px; user-select: text; }
-    .log-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    .tag-badge {
-      font-size: 0.65rem; padding: 2px 4px; border-radius: 2px;
-      border: 1px solid currentColor; display: inline-block; margin-left: 4px;
-    }
-    .tag-PENDING { color: var(--accent-warn); }
-    .tag-RESOLVED { color: var(--text-primary); }
-    .tag-ARCHIVED { color: var(--text-muted); }
-
-    .btn-tui {
-      background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);
-      font-family: var(--font-mono); padding: 5px 8px; font-size: 0.7rem;
-      cursor: pointer; border-radius: 3px; font-weight: bold;
-    }
-    .btn-tui:active { background: var(--border-color); color: #000; }
-    .btn-tui.alert { color: var(--accent-alert); border-color: var(--accent-alert); }
-
-    .stats-box {
-      background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color);
-      padding: 10px; font-size: 0.75rem; line-height: 1.6; border-radius: 4px; margin-bottom: 10px;
-    }
-
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.85); z-index: 100; padding: 16px;
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal-content {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      border-radius: 6px; padding: 14px; width: 100%; max-width: 500px;
-    }
-
-    .theme-select {
-      background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);
-      font-family: var(--font-mono); font-size: 0.7rem; padding: 2px 4px; border-radius: 3px;
-    }
-    .footer { text-align: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 8px; }
-    
-    /* ==========================================================================
-   CASSETTE PLAYER MODULE (FLAC AUDIO ENGINE)
-   ========================================================================== */
-.cassette-deck {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 12px;
-  margin-bottom: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.cassette-body {
-  width: 100%;
-  max-width: 280px;
-  height: 110px;
-  background: var(--panel-bg);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-}
-
-.cassette-label {
-  background: var(--border-color);
-  color: #000;
-  font-size: 0.65rem;
-  font-weight: bold;
-  padding: 3px 6px;
-  text-align: center;
-  border-radius: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.cassette-window {
-  background: #000;
-  border: 1px solid var(--border-color);
-  height: 48px;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 0 16px;
-}
-
-.tape-reel {
-  width: 32px;
-  height: 32px;
-  border: 2px dashed var(--border-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tape-reel::after {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: var(--border-color);
-  border-radius: 50%;
-}
-
-/* Animación de giro de cinta */
-.cassette-body.playing .tape-reel {
-  animation: spinReel 2s linear infinite;
-}
-
-@keyframes spinReel {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.player-controls {
-  display: flex;
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-/* ==========================================================================
-   MÓDULO ARCADE & JUEGOS TUI
-   ========================================================================== */
-.arcade-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.arcade-screen {
-  background: #000;
-  border: 2px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: inset 0 0 10px rgba(0,255,102,0.2);
-  width: 100%;
-  max-width: 320px;
-  height: 200px;
-}
-
-.arcade-controls {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  width: 100%;
-  max-width: 320px;
-}
-
-.arcade-btn {
-  flex: 1;
-  padding: 10px;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-weight: bold;
-  font-size: 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.arcade-btn:active {
-  background: var(--border-color);
-  color: #000;
-}
-
-
-    
-  </style>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
@@ -324,11 +41,12 @@
   <!-- Terminal Body -->
   <div class="terminal-container">
     
-    <!-- Tabs -->
+    <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('inbox')">&lt;INBOX.LOG&gt;</button>
       <button class="tab-btn" onclick="switchTab('tools')">&lt;TOOLS.EXE&gt;</button>
       <button class="tab-btn" onclick="switchTab('backup')">&lt;BACKUP.SH&gt;</button>
+      <button class="tab-btn" onclick="switchTab('games')">&lt;GAMES.SH&gt;</button>
       <button class="tab-btn" onclick="switchTab('stats')">&lt;STATS.SYS&gt;</button>
     </div>
 
@@ -345,71 +63,63 @@
       </div>
 
       <div class="scrollable-area" id="logsContainer">
-        <!-- Renderizado dinámico -->
+        <!-- Contenido renderizado por JS -->
       </div>
     </div>
 
-    <!-- Pestaña 2: Herramientas Útiles (TOOLS.EXE) -->
-    
-    <!-- MÓDULO CASSETTE PLAYER FLAC -->
-<div class="stats-box">
-  <div>[📼] CASSETTE DECK // FLAC PLAYER</div>
-  <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
-  
-  <div class="cassette-deck">
-    <!-- Reproductor Cassette Visual -->
-    <div id="cassetteDeck" class="cassette-body">
-      <div id="cassetteTitle" class="cassette-label">NO TAPE LOADED</div>
-      <div class="cassette-window">
-        <div class="tape-reel"></div>
-        <div style="font-size: 0.6rem; color: var(--text-muted);">&lt; FLAC &gt;</div>
-        <div class="tape-reel"></div>
-      </div>
-    </div>
-
-    <!-- Controles Analógicos -->
-    <div class="player-controls">
-      <button class="btn-tui" onclick="playFlacTape()">[PLAY]</button>
-      <button class="btn-tui" onclick="pauseFlacTape()">[PAUSE]</button>
-      <button class="btn-tui alert" onclick="stopFlacTape()">[STOP]</button>
-    </div>
-
-    <!-- Selector de Archivo FLAC Local -->
-    <div style="width: 100%; margin-top: 10px;">
-      <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 4px;">
-        &gt; MOUNT TAPE (.FLAC / .WAV / .MP3):
-      </label>
-      <input type="file" id="flacFileInput" accept="audio/flac, audio/wav, audio/mpeg" class="input-tui" onchange="loadFlacAudio(event)" />
-    </div>
-
-    <!-- Elemento de Audio Oculto -->
-    <audio id="audioEngine" style="display: none;"></audio>
-  </div>
-</div>
-
+    <!-- Pestaña 2: Herramientas Útiles & Cassette Player -->
     <div id="tab-tools" class="tab-content" style="display: none;">
       <div class="scrollable-area">
+        
+        <!-- CASSETTE PLAYER DECK FLAC -->
+        <div class="stats-box">
+          <div>[📼] CASSETTE DECK // FLAC PLAYER</div>
+          <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
+          
+          <div class="cassette-deck">
+            <div id="cassetteDeck" class="cassette-body">
+              <div id="cassetteTitle" class="cassette-label">NO TAPE LOADED</div>
+              <div class="cassette-window">
+                <div class="tape-reel"></div>
+                <div style="font-size: 0.6rem; color: var(--text-muted);">&lt; FLAC &gt;</div>
+                <div class="tape-reel"></div>
+              </div>
+            </div>
+
+            <div class="player-controls">
+              <button class="btn-tui" onclick="playFlacTape()">[PLAY]</button>
+              <button class="btn-tui" onclick="pauseFlacTape()">[PAUSE]</button>
+              <button class="btn-tui alert" onclick="stopFlacTape()">[STOP]</button>
+            </div>
+
+            <div style="width: 100%; margin-top: 10px;">
+              <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 4px;">
+                &gt; MOUNT TAPE (.FLAC / .WAV / .MP3):
+              </label>
+              <input type="file" id="flacFileInput" accept="audio/flac, audio/wav, audio/mpeg" class="input-tui" onchange="loadFlacAudio(event)" />
+            </div>
+
+            <audio id="audioEngine" style="display: none;"></audio>
+          </div>
+        </div>
+
+        <!-- CALCULADORA DE AUDIO -->
         <div class="stats-box">
           <div>[🧮] CALCULADORA DE AUDIO & BITRATE</div>
           <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
-          <p style="margin-bottom:6px;">Calcula el tamaño estimado de archivo no comprimido (WAV / PCM):</p>
+          <p style="margin-bottom:6px; font-size:0.7rem;">Calcula el tamaño estimado de archivo no comprimido:</p>
           <div style="display:flex; gap:6px; margin-bottom:8px;">
             <input type="number" id="calcMin" class="input-tui" placeholder="Minutos" value="3" />
             <select id="calcFormat" class="input-tui">
-              <option value="44100_16">24-bit / 44.1 kHz</option>
+              <option value="44100_16">16-bit / 44.1 kHz</option>
               <option value="48000_24">24-bit / 48.0 kHz</option>
               <option value="96000_24">24-bit / 96.0 kHz</option>
             </select>
           </div>
           <button class="btn-tui" onclick="calculateAudioSize()">[CALCULATE_SIZE]</button>
-          <p id="calcResult" style="margin-top:8px; font-weight:bold;"></p>
+          <p id="calcResult" style="margin-top:8px; font-weight:bold; font-size:0.75rem;"></p>
         </div>
 
-        <div class="stats-box">
-          <div>[📝] GENERADOR DE PLANTILLAS RÁPIDAS</div>
-          <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
-          <p style="font-size:0.7rem; color: var(--text-muted);">Usa estas plantillas predeterminadas al responder los avisos recibidos.</p>
-        </div>
       </div>
     </div>
 
@@ -417,9 +127,9 @@
     <div id="tab-backup" class="tab-content" style="display: none;">
       <div class="scrollable-area">
         <div class="stats-box">
-          <div>[💾] EXPORTAR / IMPORTAR DATOS</div>
+          <div>[💾] EXPORTAR DATOS DEL BUZÓN</div>
           <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
-          <p style="margin-bottom: 10px;">Descarga un respaldo JSON de los mensajes del buzón:</p>
+          <p style="margin-bottom: 10px; font-size:0.7rem;">Descarga una copia local de tus avisos:</p>
           <button class="btn-tui" onclick="exportDataJSON()">[EXPORT_JSON]</button>
           <button class="btn-tui" onclick="exportDataCSV()">[EXPORT_CSV]</button>
         </div>
@@ -433,7 +143,31 @@
       </div>
     </div>
 
-    <!-- Pestaña 4: Métricas -->
+    <!-- Pestaña 4: Juegos Arcade (GAMES.SH) -->
+    <div id="tab-games" class="tab-content" style="display: none;">
+      <div class="scrollable-area">
+        <div class="stats-box" style="display: flex; gap: 6px; justify-content: space-around;">
+          <button class="btn-tui" onclick="loadGame('pong')">🕹️ pong.sh</button>
+          <button class="btn-tui" onclick="loadGame('snake')">🐍 snake.sh</button>
+          <button class="btn-tui" onclick="loadGame('radio')">📻 radio.sh</button>
+        </div>
+
+        <div class="stats-box arcade-container">
+          <div id="gameTitle" style="font-size: 0.75rem; color: var(--text-muted);">&gt; SELECT EXEC: pong.sh, snake.sh, radio.sh</div>
+          
+          <canvas id="arcadeCanvas" class="arcade-screen" width="320" height="200"></canvas>
+
+          <div id="touchControls" class="arcade-controls" style="display: none;">
+            <button class="arcade-btn" id="btnUp">▲</button>
+            <button class="arcade-btn" id="btnDown">▼</button>
+            <button class="arcade-btn" id="btnLeft">◄</button>
+            <button class="arcade-btn" id="btnRight">►</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pestaña 5: Métricas -->
     <div id="tab-stats" class="tab-content" style="display: none;">
       <div class="scrollable-area">
         <div class="stats-box">
@@ -458,8 +192,8 @@
   <!-- Modal Lectura / Respuesta con Plantillas -->
   <div id="messageModal" class="modal-overlay">
     <div class="modal-content">
-      <div class="section-title" style="margin-bottom:8px;">
-        <span>&gt; READ_PAYLOAD.TXT</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:0.75rem; font-weight:bold;">&gt; READ_PAYLOAD.TXT</span>
         <button class="btn-tui alert" onclick="closeModal()">[X]</button>
       </div>
       <div id="modalBody" class="log-body"></div>
@@ -481,40 +215,7 @@
     </div>
   </div>
 
-<!-- Agrega el botón a la barra de pestañas -->
-<button class="tab-btn" onclick="switchTab('games')">&lt;GAMES.SH&gt;</button>
-
-<!-- Pestaña de Juegos (GAMES.SH) -->
-<div id="tab-games" class="tab-content" style="display: none;">
-  <div class="scrollable-area">
-    
-    <!-- Menú de Selección -->
-    <div class="stats-box" style="display: flex; gap: 6px; justify-content: space-around;">
-      <button class="btn-tui" onclick="loadGame('pong')">🕹️ pong.sh</button>
-      <button class="btn-tui" onclick="loadGame('snake')">🐍 snake.sh</button>
-      <button class="btn-tui" onclick="loadGame('radio')">📻 radio.sh</button>
-    </div>
-
-    <!-- Pantalla Arcade Canvas -->
-    <div class="stats-box arcade-container">
-      <div id="gameTitle" style="font-size: 0.75rem; color: var(--text-muted);">&gt; SELECT EXEC: pong.sh, snake.sh, radio.sh</div>
-      
-      <canvas id="arcadeCanvas" class="arcade-screen" width="320" height="200"></canvas>
-
-      <!-- Controles Táctiles Integrados para Móvil -->
-      <div id="touchControls" class="arcade-controls" style="display: none;">
-        <button class="arcade-btn" id="btnUp">▲</button>
-        <button class="arcade-btn" id="btnDown">▼</button>
-        <button class="arcade-btn" id="btnLeft">◄</button>
-        <button class="arcade-btn" id="btnRight">►</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-
-  <div class="footer">MEOW ADMINISTRADOR PRO v1.0 // MOUSTACHE DE CHAT LAB</div>
+  <div class="footer">MEOW ADMINISTRADOR PRO v5.5 // TUI SYSTEM ENGINE</div>
 
   <script src="index.js"></script>
 </body>
