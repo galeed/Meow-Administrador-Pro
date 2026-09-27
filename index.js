@@ -1,8 +1,7 @@
 /* ==========================================================================
-   MEOW ADMINISTRADOR PRO // CORE ENGINE v5.0
+   MEOW ADMINISTRADOR PRO // CORE ENGINE v5.5
    ========================================================================== */
 
-// Base de datos inicial / Estado local en el dispositivo
 let messages = JSON.parse(localStorage.getItem('meow_admin_messages')) || [
   {
     id: 'MSG-0842',
@@ -11,7 +10,8 @@ let messages = JSON.parse(localStorage.getItem('meow_admin_messages')) || [
     type: 'COLLAB_PROPOSAL',
     message: 'Hola, me interesa integrar el buzón con la arquitectura del kernel. Quedo atento a tu respuesta.',
     timestamp: '2026-09-26 19:40 UTC',
-    read: false
+    read: false,
+    tag: 'PENDING'
   },
   {
     id: 'MSG-0841',
@@ -20,19 +20,25 @@ let messages = JSON.parse(localStorage.getItem('meow_admin_messages')) || [
     type: 'GENERAL_INQUIRY',
     message: 'Excelente diseño TUI móvil para Meow Administrador Pro. ¿Tienen disponible la API de webhooks?',
     timestamp: '2026-09-26 18:15 UTC',
-    read: true
+    read: true,
+    tag: 'RESOLVED'
   }
 ];
 
-// Inicialización de la aplicación al cargar el DOM
+let selectedMsgIndex = null;
+let audioEngine = null;
+let gameInterval = null;
+let currentGame = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   renderLogs();
   updateStats();
   initThemeEngine();
+  logSystemEvent('SYSTEM_READY', 'Todos los módulos cargados.');
 });
 
 /* ==========================================================================
-   1. GESTIÓN DE TEMAS VISUALES (PALETAS QUANTUM-TUI)
+   1. GESTIÓN DE TEMAS VISUALES
    ========================================================================== */
 function initThemeEngine() {
   const savedTheme = localStorage.getItem('meow_admin_theme') || 'green';
@@ -46,53 +52,64 @@ function initThemeEngine() {
       const selectedTheme = e.target.value;
       applyTheme(selectedTheme);
       localStorage.setItem('meow_admin_theme', selectedTheme);
+      logSystemEvent('THEME_CHANGE', `Tema cambiado a ${selectedTheme}`);
     });
   }
 }
 
 function applyTheme(theme) {
-  // Limpia clases de temas previos
   document.body.className = '';
-  
-  // Aplica la clase correspondiente si es diferente al verde por defecto
   if (theme !== 'green') {
     document.body.classList.add(`theme-${theme}`);
   }
 }
 
 /* ==========================================================================
-   2. RENDERING Y MANEJO DE AVISOS (INBOX)
+   2. FILTRADO, BÚSQUEDA Y RENDERING (INBOX)
    ========================================================================== */
 function renderLogs() {
   const container = document.getElementById('logsContainer');
   if (!container) return;
 
+  const searchQuery = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const selectedTag = document.getElementById('tagFilter')?.value || 'ALL';
+
   container.innerHTML = '';
 
-  if (messages.length === 0) {
+  const filtered = messages.filter(msg => {
+    const matchesSearch = msg.name.toLowerCase().includes(searchQuery) ||
+                          msg.email.toLowerCase().includes(searchQuery) ||
+                          msg.message.toLowerCase().includes(searchQuery);
+    const matchesTag = (selectedTag === 'ALL') || (msg.tag === selectedTag);
+    return matchesSearch && matchesTag;
+  });
+
+  if (filtered.length === 0) {
     container.innerHTML = `
       <div class="stats-box" style="text-align: center; color: var(--text-muted);">
-        &gt; NO HAY AVISOS REGISTRADOS EN EL BUZÓN.
+        &gt; NO SE ENCONTRARON AVISOS QUE COINCIDAN.
       </div>`;
     return;
   }
 
-  messages.forEach((msg, index) => {
+  filtered.forEach((msg) => {
+    const originalIndex = messages.indexOf(msg);
     const card = document.createElement('div');
     card.className = `log-card ${msg.read ? 'read' : ''}`;
     card.innerHTML = `
       <div class="log-header">
-        <span>#${msg.id}</span>
+        <span>#${msg.id} <span class="tag-badge tag-${msg.tag}">${msg.tag}</span></span>
         <span>${msg.timestamp}</span>
       </div>
       <div class="log-body">
         <p><strong>FROM:</strong> ${escapeHTML(msg.name)} &lt;${escapeHTML(msg.email)}&gt;</p>
         <p><strong>TYPE:</strong> ${escapeHTML(msg.type)}</p>
-        <p class="preview">&gt; ${escapeHTML(msg.message.substring(0, 45))}...</p>
+        <p style="color: var(--text-muted); margin-top:4px;">&gt; ${escapeHTML(msg.message.substring(0, 40))}...</p>
       </div>
       <div class="log-actions">
-        <button class="btn-tui" onclick="openMessage(${index})">[READ_FULL]</button>
-        <button class="btn-tui alert" onclick="deleteMessage(${index})">[DELETE]</button>
+        <button class="btn-tui" onclick="openMessage(${originalIndex})">[READ_FULL]</button>
+        <button class="btn-tui" onclick="toggleTag(${originalIndex})">[TAG: ${msg.tag}]</button>
+        <button class="btn-tui alert" onclick="deleteMessage(${originalIndex})">[DELETE]</button>
       </div>
     `;
     container.appendChild(card);
@@ -101,30 +118,29 @@ function renderLogs() {
   saveData();
 }
 
+function toggleTag(index) {
+  const tags = ['PENDING', 'RESOLVED', 'ARCHIVED'];
+  const currentTag = messages[index].tag || 'PENDING';
+  const nextTag = tags[(tags.indexOf(currentTag) + 1) % tags.length];
+  messages[index].tag = nextTag;
+  renderLogs();
+  updateStats();
+}
+
 /* ==========================================================================
-   3. NAVEGACIÓN POR PESTAÑAS (TABS)
+   3. NAVEGACIÓN Y PESTAÑAS
    ========================================================================== */
 function switchTab(tabName) {
-  // Desactivar todos los botones de pestañas
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   
-  // Ocultar todas las secciones
-  const tabInbox = document.getElementById('tab-inbox');
-  const tabStats = document.getElementById('tab-stats');
-  const tabConfig = document.getElementById('tab-config');
+  document.getElementById('tab-inbox').style.display = 'none';
+  document.getElementById('tab-tools').style.display = 'none';
+  document.getElementById('tab-backup').style.display = 'none';
+  document.getElementById('tab-games').style.display = 'none';
+  document.getElementById('tab-stats').style.display = 'none';
 
-  if (tabInbox) tabInbox.style.display = 'none';
-  if (tabStats) tabStats.style.display = 'none';
-  if (tabConfig) tabConfig.style.display = 'none';
-
-  // Mostrar la pestaña seleccionada y activar su botón
-  if (tabName === 'inbox' && tabInbox) {
-    tabInbox.style.display = 'block';
-  } else if (tabName === 'stats' && tabStats) {
-    tabStats.style.display = 'block';
-  } else if (tabName === 'config' && tabConfig) {
-    tabConfig.style.display = 'block';
-  }
+  const selectedTab = document.getElementById(`tab-${tabName}`);
+  if (selectedTab) selectedTab.style.display = 'flex';
 
   if (event && event.target) {
     event.target.classList.add('active');
@@ -132,112 +148,81 @@ function switchTab(tabName) {
 }
 
 /* ==========================================================================
-   4. MODAL Y LECTURA DE MENSAJES
+   4. MODAL Y PLANTILLAS DE RESPUESTA
    ========================================================================== */
 function openMessage(index) {
+  selectedMsgIndex = index;
   const msg = messages[index];
   if (!msg) return;
 
-  msg.read = true; // Marcar como leído
+  msg.read = true;
 
   const modalBody = document.getElementById('modalBody');
-  const replyBtn = document.getElementById('replyBtn');
   const modal = document.getElementById('messageModal');
 
   if (modalBody) {
     modalBody.innerHTML = `
-      <p style="margin-bottom:6px;"><strong>ID:</strong> #${msg.id}</p>
-      <p style="margin-bottom:6px;"><strong>DATE:</strong> ${msg.timestamp}</p>
-      <p style="margin-bottom:6px;"><strong>FROM:</strong> ${escapeHTML(msg.name)} (${escapeHTML(msg.email)})</p>
-      <p style="margin-bottom:12px;"><strong>TYPE:</strong> ${escapeHTML(msg.type)}</p>
-      <hr style="border:0; border-top:1px dashed var(--border-color); margin-bottom:12px;" />
+      <p><strong>ID:</strong> #${msg.id} | <strong>DATE:</strong> ${msg.timestamp}</p>
+      <p><strong>FROM:</strong> ${escapeHTML(msg.name)} (${escapeHTML(msg.email)})</p>
+      <p style="margin-bottom:8px;"><strong>TYPE:</strong> ${escapeHTML(msg.type)}</p>
+      <hr style="border:0; border-top:1px dashed var(--border-color); margin-bottom:8px;" />
       <p style="white-space: pre-wrap; color: var(--text-primary);">${escapeHTML(msg.message)}</p>
     `;
   }
 
-  if (replyBtn) {
-    replyBtn.onclick = () => {
-      window.location.href = `mailto:${msg.email}?subject=RE: ${msg.type} - Meow Administrador Pro`;
-    };
-  }
+  document.getElementById('templateSelect').value = '';
+  updateReplyButton(msg.email, '');
 
-  if (modal) {
-    modal.classList.add('active');
-  }
-
+  if (modal) modal.classList.add('active');
   renderLogs();
   updateStats();
+}
+
+function applyResponseTemplate() {
+  if (selectedMsgIndex === null) return;
+  const msg = messages[selectedMsgIndex];
+  const templateType = document.getElementById('templateSelect').value;
+
+  let bodyText = "";
+  if (templateType === 'CONFIRM') {
+    bodyText = `Hola ${msg.name},\n\nHemos recibido tu aviso correctamente. Nos pondremos en contacto a la brevedad.\n\nSaludos,\nMeow Admin Team`;
+  } else if (templateType === 'IN_REVIEW') {
+    bodyText = `Hola ${msg.name},\n\nTu propuesta/mensaje está actualmente bajo revisión técnica.\n\nSaludos,\nMeow Admin Team`;
+  } else if (templateType === 'ACCEPTED') {
+    bodyText = `Hola ${msg.name},\n\nNos complace informarte que tu solicitud ha sido aprobada.\n\nSaludos,\nMeow Admin Team`;
+  }
+
+  updateReplyButton(msg.email, bodyText);
+}
+
+function updateReplyButton(email, body) {
+  const replyBtn = document.getElementById('replyBtn');
+  if (replyBtn) {
+    replyBtn.onclick = () => {
+      const subject = encodeURIComponent("RE: Mensaje recibido - Meow Admin");
+      const bodyParam = encodeURIComponent(body);
+      window.location.href = `mailto:${email}?subject=${subject}&body=${bodyParam}`;
+    };
+  }
 }
 
 function closeModal() {
-  const modal = document.getElementById('messageModal');
-  if (modal) {
-    modal.classList.remove('active');
-  }
+  document.getElementById('messageModal')?.classList.remove('active');
 }
 
 /* ==========================================================================
-   5. ELIMINACIÓN Y LIMPIEZA
+   5. CASSETTE PLAYER DECK & HERRAMIENTAS
    ========================================================================== */
-function deleteMessage(index) {
-  messages.splice(index, 1);
-  renderLogs();
-  updateStats();
-}
-
-function clearAllLogs() {
-  if (confirm('> MEOW ADMIN: ¿Confirmar la eliminación de TODOS los avisos?')) {
-    messages = [];
-    renderLogs();
-    updateStats();
-  }
-}
-
-/* ==========================================================================
-   6. METRICAS Y PERSISTENCIA
-   ========================================================================== */
-function updateStats() {
-  const unreadCount = messages.filter(m => !m.read).length;
-  
-  const unreadCounterEl = document.getElementById('unreadCounter');
-  const statTotalEl = document.getElementById('statTotal');
-  const statUnreadEl = document.getElementById('statUnread');
-
-  if (unreadCounterEl) unreadCounterEl.innerText = `NUEVOS: ${unreadCount}`;
-  if (statTotalEl) statTotalEl.innerText = `TOTAL RECIBIDOS: ${messages.length}`;
-  if (statUnreadEl) statUnreadEl.innerText = `PENDIENTES:      ${unreadCount}`;
-}
-
-function saveData() {
-  localStorage.setItem('meow_admin_messages', JSON.stringify(messages));
-}
-
-// Utilidad para evitar inyección HTML en las cadenas de texto
-function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
-    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-  );
-}
-
-/* ==========================================================================
-   CASSETTE PLAYER & FLAC AUDIO ENGINE
-   ========================================================================== */
-let audioEngine = null;
-
 function getAudioEngine() {
   if (!audioEngine) {
     audioEngine = document.getElementById('audioEngine');
-    
-    // Sincronizar eventos de reproducción con las animaciones de la cinta
     if (audioEngine) {
       audioEngine.addEventListener('play', () => {
         document.getElementById('cassetteDeck')?.classList.add('playing');
       });
-
       audioEngine.addEventListener('pause', () => {
         document.getElementById('cassetteDeck')?.classList.remove('playing');
       });
-
       audioEngine.addEventListener('ended', () => {
         document.getElementById('cassetteDeck')?.classList.remove('playing');
         logSystemEvent('AUDIO_ENGINE', 'Cinta finalizada.');
@@ -253,9 +238,8 @@ function loadFlacAudio(event) {
 
   const player = getAudioEngine();
   const titleLabel = document.getElementById('cassetteTitle');
-
-  // Crear URL local temporal para reproducir el archivo cargado
   const fileURL = URL.createObjectURL(file);
+
   player.src = fileURL;
 
   if (titleLabel) {
@@ -263,11 +247,7 @@ function loadFlacAudio(event) {
   }
 
   logSystemEvent('CASSETTE_MOUNT', `Cargado: ${file.name}`);
-  
-  // Reproduce automáticamente al montar el archivo
-  player.play().catch(err => {
-    logSystemEvent('AUDIO_ERROR', 'Requiere interacción del usuario para reproducir.');
-  });
+  player.play().catch(() => logSystemEvent('AUDIO_ERROR', 'Interacción requerida para reproducir.'));
 }
 
 function playFlacTape() {
@@ -295,12 +275,26 @@ function stopFlacTape() {
   }
 }
 
-/* ==========================================================================
-   EXEC: GAMES.SH (PONG, SNAKE & LO-FI RADIO)
-   ========================================================================== */
-let gameInterval = null;
-let currentGame = null;
+function calculateAudioSize() {
+  const mins = parseFloat(document.getElementById('calcMin').value) || 0;
+  const format = document.getElementById('calcFormat').value;
 
+  let sampleRate = 44100;
+  let bitDepth = 16;
+
+  if (format === '48000_24') { sampleRate = 48000; bitDepth = 24; }
+  else if (format === '96000_24') { sampleRate = 96000; bitDepth = 24; }
+
+  const bytesPerSecond = sampleRate * (bitDepth / 8) * 2;
+  const totalBytes = bytesPerSecond * (mins * 60);
+  const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
+
+  document.getElementById('calcResult').innerText = `ESTIMADO STEREO: ~${totalMB} MB`;
+}
+
+/* ==========================================================================
+   6. JUEGOS ARCADE (PONG, SNAKE, RADIO)
+   ========================================================================== */
 function loadGame(gameType) {
   clearInterval(gameInterval);
   currentGame = gameType;
@@ -310,7 +304,6 @@ function loadGame(gameType) {
   const title = document.getElementById('gameTitle');
   const controls = document.getElementById('touchControls');
 
-  // Limpiar pantalla
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -329,7 +322,6 @@ function loadGame(gameType) {
   }
 }
 
-/* 1. 🕹️ PONG.SH */
 function initPong(canvas, ctx) {
   let paddleY = 80;
   let ballX = 160, ballY = 100;
@@ -342,32 +334,24 @@ function initPong(canvas, ctx) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Obtener color dinámico del tema activo
     const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
     ctx.fillStyle = mainColor;
 
-    // Raqueta Jugador
     ctx.fillRect(10, paddleY, 8, 40);
-    // Bola
     ctx.fillRect(ballX, ballY, 6, 6);
 
     ballX += ballDX;
     ballY += ballDY;
 
-    // Rebotes techo/piso
     if (ballY <= 0 || ballY >= canvas.height - 6) ballDY *= -1;
-
-    // Rebote raqueta
     if (ballX <= 18 && ballY >= paddleY && ballY <= paddleY + 40) ballDX *= -1;
 
-    // Reinicio si sale
     if (ballX <= 0 || ballX >= canvas.width) {
       ballX = 160; ballY = 100;
     }
   }, 1000 / 30);
 }
 
-/* 2. 🐍 SNAKE.SH */
 function initSnake(canvas, ctx) {
   let snake = [{x: 160, y: 100}];
   let dx = 10, dy = 0;
@@ -384,11 +368,9 @@ function initSnake(canvas, ctx) {
 
     const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
 
-    // Mover Serpiente
     const head = {x: snake[0].x + dx, y: snake[0].y + dy};
     snake.unshift(head);
 
-    // Comer comida
     if (head.x === food.x && head.y === food.y) {
       food = {
         x: Math.floor(Math.random() * (canvas.width / 10)) * 10,
@@ -398,15 +380,12 @@ function initSnake(canvas, ctx) {
       snake.pop();
     }
 
-    // Dibujar Serpiente
     ctx.fillStyle = mainColor;
     snake.forEach(part => ctx.fillRect(part.x, part.y, 8, 8));
 
-    // Dibujar Comida
     ctx.fillStyle = '#ff3366';
     ctx.fillRect(food.x, food.y, 8, 8);
 
-    // Choque pared
     if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
       snake = [{x: 160, y: 100}];
       dx = 10; dy = 0;
@@ -414,7 +393,6 @@ function initSnake(canvas, ctx) {
   }, 1000 / 12);
 }
 
-/* 3. 📻 RADIO.SH (LO-FI) */
 function initRadio(canvas, ctx) {
   let bars = Array(20).fill(10);
 
@@ -425,13 +403,102 @@ function initRadio(canvas, ctx) {
     const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
     ctx.fillStyle = mainColor;
 
-    // Dibujar ecualizador visual dinámico
     bars = bars.map(() => Math.floor(Math.random() * 120) + 10);
     bars.forEach((height, index) => {
       ctx.fillRect(20 + (index * 14), canvas.height - height - 20, 10, height);
     });
 
-    ctx.font = '12px Courier New';
+    ctx.font = '12px Fira Code, monospace';
     ctx.fillText('STREAMING: Lofi Chill Beats 24/7', 30, 30);
   }, 100);
+}
+
+/* ==========================================================================
+   7. EXPORTACIÓN & RESPALDO
+   ========================================================================== */
+function exportDataJSON() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages, null, 2));
+  downloadFile(dataStr, "meow_admin_backup.json");
+  logSystemEvent('EXPORT_JSON', 'Copia JSON descargada.');
+}
+
+function exportDataCSV() {
+  let csv = "ID,Name,Email,Type,Message,Timestamp,Tag\n";
+  messages.forEach(m => {
+    csv += `"${m.id}","${m.name}","${m.email}","${m.type}","${m.message.replace(/"/g, '""')}","${m.timestamp}","${m.tag}"\n`;
+  });
+  const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  downloadFile(dataStr, "meow_admin_backup.csv");
+  logSystemEvent('EXPORT_CSV', 'Respaldo CSV exportado.');
+}
+
+function downloadFile(dataStr, filename) {
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", filename);
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+}
+
+function importDataJSON() {
+  const fileInput = document.getElementById('importFile');
+  if (!fileInput.files.length) {
+    alert('> ERROR: Selecciona un archivo .json');
+    return;
+  }
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (Array.isArray(imported)) {
+        messages = imported;
+        renderLogs();
+        updateStats();
+        alert('> RESPALDO RESTAURADO CON ÉXITO');
+        logSystemEvent('IMPORT_BACKUP', 'Respaldo JSON restaurado.');
+      }
+    } catch (err) {
+      alert('> ERROR: Archivo JSON no válido.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ==========================================================================
+   8. MÉTRICAS Y PERSISTENCIA
+   ========================================================================== */
+function deleteMessage(index) {
+  messages.splice(index, 1);
+  renderLogs();
+  updateStats();
+}
+
+function updateStats() {
+  const unreadCount = messages.filter(m => !m.read).length;
+  const resolvedCount = messages.filter(m => m.tag === 'RESOLVED').length;
+
+  document.getElementById('unreadCounter').innerText = `NUEVOS: ${unreadCount}`;
+  document.getElementById('statTotal').innerText = `TOTAL RECIBIDOS: ${messages.length}`;
+  document.getElementById('statUnread').innerText = `PENDIENTES:      ${unreadCount}`;
+  document.getElementById('statResolved').innerText = `RESUELTOS:       ${resolvedCount}`;
+}
+
+function logSystemEvent(event, detail) {
+  const consoleEl = document.getElementById('sysLogs');
+  if (consoleEl) {
+    const time = new Date().toLocaleTimeString();
+    consoleEl.innerHTML += `&gt; [${time}] ${event}: ${detail}<br/>`;
+  }
+}
+
+function saveData() {
+  localStorage.setItem('meow_admin_messages', JSON.stringify(messages));
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
 }
