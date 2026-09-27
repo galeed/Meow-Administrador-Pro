@@ -146,14 +146,26 @@ body {
       color: var(--text-primary);
     }
 
-    /* Contenedor Principal */
-    .terminal-container {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 0 0 8px 8px;
-      padding: 14px;
-      flex-grow: 1;
-    }
+    /* Contenedor principal rígido */
+.terminal-container {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0 0 8px 8px;
+  padding: 14px;
+  flex: 1; /* Ocupa el espacio vertical restante */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Mantiene el marco estático */
+}
+
+/* Área interna donde se listan los avisos */
+#logsContainer {
+  flex: 1;
+  overflow-y: auto; /* Permite scroll solo en los mensajes */
+  overscroll-behavior-y: contain; /* Bloquea el rebote al llegar al final de la lista */
+  padding-right: 4px;
+}
+
 
     /* Navegación por Pestañas */
     .nav-tabs {
