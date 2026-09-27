@@ -81,17 +81,27 @@ body.theme-cappuccino {
       user-select: none;
     }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-primary);
-      font-family: var(--font-mono);
-      padding: 10px;
-      max-width: 650px;
-      margin: 0 auto;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    /* Bloqueo de rebote elástico (Overscroll) y fijación de pantalla */
+html, body {
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  overflow: hidden; /* Evita que toda la página reboté hacia arriba/abajo */
+  overscroll-behavior: none; /* Desactiva el efecto "pull-to-refresh" y el bounce de iOS */
+  touch-action: manipulation;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  padding: 10px;
+  max-width: 650px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 
     /* Top Bar Window Header */
     .terminal-header {
