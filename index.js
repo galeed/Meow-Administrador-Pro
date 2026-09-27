@@ -26,9 +26,6 @@ let messages = JSON.parse(localStorage.getItem('meow_admin_messages')) || [
 ];
 
 let selectedMsgIndex = null;
-let audioEngine = null;
-let gameInterval = null;
-let currentGame = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   renderLogs();
@@ -104,7 +101,7 @@ function renderLogs() {
       <div class="log-body">
         <p><strong>FROM:</strong> ${escapeHTML(msg.name)} &lt;${escapeHTML(msg.email)}&gt;</p>
         <p><strong>TYPE:</strong> ${escapeHTML(msg.type)}</p>
-        <p style="color: var(--text-muted); margin-top:4px;">&gt; ${escapeHTML(msg.message.substring(0, 40))}...</p>
+        <p style="color: #8b949e; margin-top:4px;">&gt; ${escapeHTML(msg.message.substring(0, 40))}...</p>
       </div>
       <div class="log-actions">
         <button class="btn-tui" onclick="openMessage(${originalIndex})">[READ_FULL]</button>
@@ -136,7 +133,6 @@ function switchTab(tabName) {
   document.getElementById('tab-inbox').style.display = 'none';
   document.getElementById('tab-tools').style.display = 'none';
   document.getElementById('tab-backup').style.display = 'none';
-  document.getElementById('tab-games').style.display = 'none';
   document.getElementById('tab-stats').style.display = 'none';
 
   const selectedTab = document.getElementById(`tab-${tabName}`);
@@ -211,70 +207,8 @@ function closeModal() {
 }
 
 /* ==========================================================================
-   5. CASSETTE PLAYER DECK & HERRAMIENTAS
+   5. HERRAMIENTAS INTEGRADAS (TOOLS.EXE)
    ========================================================================== */
-function getAudioEngine() {
-  if (!audioEngine) {
-    audioEngine = document.getElementById('audioEngine');
-    if (audioEngine) {
-      audioEngine.addEventListener('play', () => {
-        document.getElementById('cassetteDeck')?.classList.add('playing');
-      });
-      audioEngine.addEventListener('pause', () => {
-        document.getElementById('cassetteDeck')?.classList.remove('playing');
-      });
-      audioEngine.addEventListener('ended', () => {
-        document.getElementById('cassetteDeck')?.classList.remove('playing');
-        logSystemEvent('AUDIO_ENGINE', 'Cinta finalizada.');
-      });
-    }
-  }
-  return audioEngine;
-}
-
-function loadFlacAudio(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const player = getAudioEngine();
-  const titleLabel = document.getElementById('cassetteTitle');
-  const fileURL = URL.createObjectURL(file);
-
-  player.src = fileURL;
-
-  if (titleLabel) {
-    titleLabel.innerText = file.name.toUpperCase();
-  }
-
-  logSystemEvent('CASSETTE_MOUNT', `Cargado: ${file.name}`);
-  player.play().catch(() => logSystemEvent('AUDIO_ERROR', 'Interacción requerida para reproducir.'));
-}
-
-function playFlacTape() {
-  const player = getAudioEngine();
-  if (player && player.src) {
-    player.play();
-    logSystemEvent('AUDIO_CONTROL', 'PLAY');
-  }
-}
-
-function pauseFlacTape() {
-  const player = getAudioEngine();
-  if (player) {
-    player.pause();
-    logSystemEvent('AUDIO_CONTROL', 'PAUSE');
-  }
-}
-
-function stopFlacTape() {
-  const player = getAudioEngine();
-  if (player) {
-    player.pause();
-    player.currentTime = 0;
-    logSystemEvent('AUDIO_CONTROL', 'STOP');
-  }
-}
-
 function calculateAudioSize() {
   const mins = parseFloat(document.getElementById('calcMin').value) || 0;
   const format = document.getElementById('calcFormat').value;
@@ -285,6 +219,7 @@ function calculateAudioSize() {
   if (format === '48000_24') { sampleRate = 48000; bitDepth = 24; }
   else if (format === '96000_24') { sampleRate = 96000; bitDepth = 24; }
 
+  // Estéreo = 2 canales
   const bytesPerSecond = sampleRate * (bitDepth / 8) * 2;
   const totalBytes = bytesPerSecond * (mins * 60);
   const totalMB = (totalBytes / (1024 * 1024)).toFixed(2);
@@ -293,133 +228,12 @@ function calculateAudioSize() {
 }
 
 /* ==========================================================================
-   6. JUEGOS ARCADE (PONG, SNAKE, RADIO)
-   ========================================================================== */
-function loadGame(gameType) {
-  clearInterval(gameInterval);
-  currentGame = gameType;
-  
-  const canvas = document.getElementById('arcadeCanvas');
-  const ctx = canvas.getContext('2d');
-  const title = document.getElementById('gameTitle');
-  const controls = document.getElementById('touchControls');
-
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (gameType === 'pong') {
-    title.innerText = '> EXEC: pong.sh (PONG ARCADE)';
-    controls.style.display = 'flex';
-    initPong(canvas, ctx);
-  } else if (gameType === 'snake') {
-    title.innerText = '> EXEC: snake.sh (SNAKE ARCADE)';
-    controls.style.display = 'flex';
-    initSnake(canvas, ctx);
-  } else if (gameType === 'radio') {
-    title.innerText = '> EXEC: radio.sh (LO-FI STREAMING)';
-    controls.style.display = 'none';
-    initRadio(canvas, ctx);
-  }
-}
-
-function initPong(canvas, ctx) {
-  let paddleY = 80;
-  let ballX = 160, ballY = 100;
-  let ballDX = 3, ballDY = 2;
-
-  document.getElementById('btnUp').onclick = () => { paddleY = Math.max(0, paddleY - 15); };
-  document.getElementById('btnDown').onclick = () => { paddleY = Math.min(canvas.height - 40, paddleY + 15); };
-
-  gameInterval = setInterval(() => {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
-    ctx.fillStyle = mainColor;
-
-    ctx.fillRect(10, paddleY, 8, 40);
-    ctx.fillRect(ballX, ballY, 6, 6);
-
-    ballX += ballDX;
-    ballY += ballDY;
-
-    if (ballY <= 0 || ballY >= canvas.height - 6) ballDY *= -1;
-    if (ballX <= 18 && ballY >= paddleY && ballY <= paddleY + 40) ballDX *= -1;
-
-    if (ballX <= 0 || ballX >= canvas.width) {
-      ballX = 160; ballY = 100;
-    }
-  }, 1000 / 30);
-}
-
-function initSnake(canvas, ctx) {
-  let snake = [{x: 160, y: 100}];
-  let dx = 10, dy = 0;
-  let food = {x: 80, y: 80};
-
-  document.getElementById('btnUp').onclick = () => { if (dy === 0) { dx = 0; dy = -10; } };
-  document.getElementById('btnDown').onclick = () => { if (dy === 0) { dx = 0; dy = 10; } };
-  document.getElementById('btnLeft').onclick = () => { if (dx === 0) { dx = -10; dy = 0; } };
-  document.getElementById('btnRight').onclick = () => { if (dx === 0) { dx = 10; dy = 0; } };
-
-  gameInterval = setInterval(() => {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
-
-    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-    snake.unshift(head);
-
-    if (head.x === food.x && head.y === food.y) {
-      food = {
-        x: Math.floor(Math.random() * (canvas.width / 10)) * 10,
-        y: Math.floor(Math.random() * (canvas.height / 10)) * 10
-      };
-    } else {
-      snake.pop();
-    }
-
-    ctx.fillStyle = mainColor;
-    snake.forEach(part => ctx.fillRect(part.x, part.y, 8, 8));
-
-    ctx.fillStyle = '#ff3366';
-    ctx.fillRect(food.x, food.y, 8, 8);
-
-    if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
-      snake = [{x: 160, y: 100}];
-      dx = 10; dy = 0;
-    }
-  }, 1000 / 12);
-}
-
-function initRadio(canvas, ctx) {
-  let bars = Array(20).fill(10);
-
-  gameInterval = setInterval(() => {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
-    ctx.fillStyle = mainColor;
-
-    bars = bars.map(() => Math.floor(Math.random() * 120) + 10);
-    bars.forEach((height, index) => {
-      ctx.fillRect(20 + (index * 14), canvas.height - height - 20, 10, height);
-    });
-
-    ctx.font = '12px Fira Code, monospace';
-    ctx.fillText('STREAMING: Lofi Chill Beats 24/7', 30, 30);
-  }, 100);
-}
-
-/* ==========================================================================
-   7. EXPORTACIÓN & RESPALDO
+   6. EXPORTACIÓN & RESPALDO (BACKUP.SH)
    ========================================================================== */
 function exportDataJSON() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(messages, null, 2));
   downloadFile(dataStr, "meow_admin_backup.json");
-  logSystemEvent('EXPORT_JSON', 'Copia JSON descargada.');
+  logSystemEvent('EXPORT_JSON', 'Copia de seguridad descargada.');
 }
 
 function exportDataCSV() {
@@ -467,7 +281,7 @@ function importDataJSON() {
 }
 
 /* ==========================================================================
-   8. MÉTRICAS Y PERSISTENCIA
+   7. METRICAS & LOGS DEL SISTEMA
    ========================================================================== */
 function deleteMessage(index) {
   messages.splice(index, 1);
