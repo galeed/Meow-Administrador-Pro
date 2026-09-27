@@ -218,3 +218,80 @@ function escapeHTML(str) {
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
+
+/* ==========================================================================
+   CASSETTE PLAYER & FLAC AUDIO ENGINE
+   ========================================================================== */
+let audioEngine = null;
+
+function getAudioEngine() {
+  if (!audioEngine) {
+    audioEngine = document.getElementById('audioEngine');
+    
+    // Sincronizar eventos de reproducción con las animaciones de la cinta
+    if (audioEngine) {
+      audioEngine.addEventListener('play', () => {
+        document.getElementById('cassetteDeck')?.classList.add('playing');
+      });
+
+      audioEngine.addEventListener('pause', () => {
+        document.getElementById('cassetteDeck')?.classList.remove('playing');
+      });
+
+      audioEngine.addEventListener('ended', () => {
+        document.getElementById('cassetteDeck')?.classList.remove('playing');
+        logSystemEvent('AUDIO_ENGINE', 'Cinta finalizada.');
+      });
+    }
+  }
+  return audioEngine;
+}
+
+function loadFlacAudio(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const player = getAudioEngine();
+  const titleLabel = document.getElementById('cassetteTitle');
+
+  // Crear URL local temporal para reproducir el archivo cargado
+  const fileURL = URL.createObjectURL(file);
+  player.src = fileURL;
+
+  if (titleLabel) {
+    titleLabel.innerText = file.name.toUpperCase();
+  }
+
+  logSystemEvent('CASSETTE_MOUNT', `Cargado: ${file.name}`);
+  
+  // Reproduce automáticamente al montar el archivo
+  player.play().catch(err => {
+    logSystemEvent('AUDIO_ERROR', 'Requiere interacción del usuario para reproducir.');
+  });
+}
+
+function playFlacTape() {
+  const player = getAudioEngine();
+  if (player && player.src) {
+    player.play();
+    logSystemEvent('AUDIO_CONTROL', 'PLAY');
+  }
+}
+
+function pauseFlacTape() {
+  const player = getAudioEngine();
+  if (player) {
+    player.pause();
+    logSystemEvent('AUDIO_CONTROL', 'PAUSE');
+  }
+}
+
+function stopFlacTape() {
+  const player = getAudioEngine();
+  if (player) {
+    player.pause();
+    player.currentTime = 0;
+    logSystemEvent('AUDIO_CONTROL', 'STOP');
+  }
+}
+
