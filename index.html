@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quantum-TUI // Admin Console</title>
+  <!-- Tipografía Monospaced de Terminal -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Variables de Tema - Verde Fósforo (CRT Green) por defecto */
+    :root {
+      --bg-color: #0b0e14;
+      --panel-bg: #131721;
+      --border-color: #238636;
+      --text-primary: #3fb950;
+      --text-muted: #2ea043;
+      --accent-alert: #f85149;
+      --accent-warn: #eab308;
+      --font-mono: 'Fira Code', 'Courier New', monospace;
+    }
+
+    /* Temas de Color Opcionales */
+    body.theme-amber {
+      --bg-color: #120c02;
+      --panel-bg: #1f1404;
+      --border-color: #d97706;
+      --text-primary: #f59e0b;
+      --text-muted: #b45309;
+    }
+
+    body.theme-cyan {
+      --bg-color: #03131a;
+      --panel-bg: #07222e;
+      --border-color: #0891b2;
+      --text-primary: #22d3ee;
+      --text-muted: #0e7490;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      padding: 10px;
+      max-width: 650px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar Window Header */
+    .terminal-header {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px 8px 0 0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: none;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    .terminal-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      background: #18221a;
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      font-size: 0.7rem;
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-primary);
+    }
+
+    /* Contenedor Principal */
+    .terminal-container {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0 0 8px 8px;
+      padding: 14px;
+      flex-grow: 1;
+    }
+
+    /* Navegación por Pestañas */
+    .nav-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 6px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      cursor: pointer;
+      border-radius: 4px;
+      white-space: nowrap;
+      touch-action: manipulation;
+    }
+
+    .tab-btn.active {
+      background: var(--border-color);
+      color: #000;
+      font-weight: bold;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed var(--text-muted);
+      padding-bottom: 6px;
+    }
+
+    /* Tarjetas de Mensajes / Logs */
+    .log-card {
+      background: rgba(35, 134, 54, 0.05);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--text-primary);
+      border-radius: 4px;
+      padding: 12px;
+      margin-bottom: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .log-card.read {
+      border-left: 4px solid var(--text-muted);
+      opacity: 0.75;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .log-body {
+      font-size: 0.8rem;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      user-select: text;
+    }
+
+    .log-body strong {
+      color: var(--text-primary);
+    }
+
+    .log-body .preview {
+      color: #8b949e;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* Botones TUI Touch Friendly */
+    .log-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-tui {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      padding: 6px 10px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      border-radius: 3px;
+      font-weight: bold;
+      touch-action: manipulation;
+    }
+
+    .btn-tui:active {
+      background: var(--border-color);
+      color: #000;
+    }
+
+    .btn-tui.alert {
+      color: var(--accent-alert);
+      border-color: var(--accent-alert);
+    }
+
+    .btn-tui.alert:active {
+      background: var(--accent-alert);
+      color: #fff;
+    }
+
+    /* Caja de Estadísticas */
+    .stats-box {
+      background: #0d1117;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      border-radius: 4px;
+    }
+
+    /* Selector de Tema */
+    .theme-select {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    /* Modal / Lectura completa */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 14px;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Terminal Header -->
+  <div class="terminal-header">
+    <div class="window-dots">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+    </div>
+    <div class="terminal-title">admin@root:~/buzon-inbox</div>
+    <div>
+      <select id="themeSelect" class="theme-select">
+        <option value="green">🟢 Green CRT</option>
+        <option value="amber">🟠 Amber</option>
+        <option value="cyan">🔵 Cyan</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span>[STATUS: 200 OK]</span>
+    <span id="unreadCounter">NUEVOS: 0</span>
+    <span>SYNC: LIVE</span>
+  </div>
+
+  <!-- Terminal Body -->
+  <div class="terminal-container">
+    
+    <!-- Navegación por pestañas -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('inbox')">&lt;INBOX.LOG&gt;</button>
+      <button class="tab-btn" onclick="switchTab('stats')">&lt;STATS.SYS&gt;</button>
+      <button class="tab-btn" onclick="switchTab('config')">&lt;CONFIG.ENV&gt;</button>
+    </div>
+
+    <!-- Pestaña 1: Bandeja de Entrada -->
+    <div id="tab-inbox">
+      <div class="section-title">
+        <span>&gt; CAT BUZON_FEED.LOG</span>
+        <button class="btn-tui" onclick="clearAllLogs()">[CLEAR_ALL]</button>
+      </div>
+      <div id="logsContainer">
+        <!-- Los avisos entrantes se inyectan aquí con JS -->
+      </div>
+    </div>
+
+    <!-- Pestaña 2: Estadísticas -->
+    <div id="tab-stats" style="display: none;">
+      <div class="section-title">
+        <span>&gt; ./STATS.SH // SYSTEM METRICS</span>
+      </div>
+      <div class="stats-box">
+        <div>[⚡] BUZON SYSTEM METRICS</div>
+        <div>---------------------------------------</div>
+        <div id="statTotal">TOTAL RECIBIDOS: 0</div>
+        <div id="statUnread">PENDIENTES:      0</div>
+        <div style="margin-top: 8px;">CAPACIDAD DB:  [████████░░░░░░] 52%</div>
+        <div>ESTADO:        ONLINE // READY</div>
+      </div>
+    </div>
+
+    <!-- Pestaña 3: Configuración -->
+    <div id="tab-config" style="display: none;">
+      <div class="section-title">
+        <span>&gt; CAT CONFIG.ENV // SETTINGS</span>
+      </div>
+      <div class="stats-box">
+        <p style="margin-bottom: 8px;"><strong>EMAIL DESTINO PREDETERMINADO:</strong></p>
+        <p style="color: var(--text-primary); margin-bottom: 12px;">&gt; admin@tudominio.com</p>
+        <p style="font-size: 0.7rem; color: #8b949e;">Para sincronizar nuevos avisos desde tu web principal, asegúrate de enviar los datos mediante POST o usando la API del servicio EmailJS/Formspree.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal para Lectura de Mensaje Completo -->
+  <div id="messageModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="section-title">
+        <span>&gt; READ_PAYLOAD.TXT</span>
+        <button class="btn-tui alert" onclick="closeModal()">[X]</button>
+      </div>
+      <div id="modalBody" class="log-body" style="user-select: text;"></div>
+      <div class="log-actions" style="margin-top: 14px;">
+        <button class="btn-tui" id="replyBtn">[REPLY_VIA_EMAIL]</button>
+        <button class="btn-tui alert" onclick="closeModal()">[CLOSE]</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    QUANTUM-TUI ADMIN ENGINE v5.0 // MOBILE OPTIMIZED
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
