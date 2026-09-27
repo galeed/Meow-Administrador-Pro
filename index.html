@@ -242,6 +242,53 @@
   margin-top: 10px;
 }
 
+/* ==========================================================================
+   MÓDULO ARCADE & JUEGOS TUI
+   ========================================================================== */
+.arcade-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.arcade-screen {
+  background: #000;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  box-shadow: inset 0 0 10px rgba(0,255,102,0.2);
+  width: 100%;
+  max-width: 320px;
+  height: 200px;
+}
+
+.arcade-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.arcade-btn {
+  flex: 1;
+  padding: 10px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: bold;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.arcade-btn:active {
+  background: var(--border-color);
+  color: #000;
+}
+
+
     
   </style>
 </head>
@@ -433,6 +480,39 @@
       </div>
     </div>
   </div>
+
+<!-- Agrega el botón a la barra de pestañas -->
+<button class="tab-btn" onclick="switchTab('games')">&lt;GAMES.SH&gt;</button>
+
+<!-- Pestaña de Juegos (GAMES.SH) -->
+<div id="tab-games" class="tab-content" style="display: none;">
+  <div class="scrollable-area">
+    
+    <!-- Menú de Selección -->
+    <div class="stats-box" style="display: flex; gap: 6px; justify-content: space-around;">
+      <button class="btn-tui" onclick="loadGame('pong')">🕹️ pong.sh</button>
+      <button class="btn-tui" onclick="loadGame('snake')">🐍 snake.sh</button>
+      <button class="btn-tui" onclick="loadGame('radio')">📻 radio.sh</button>
+    </div>
+
+    <!-- Pantalla Arcade Canvas -->
+    <div class="stats-box arcade-container">
+      <div id="gameTitle" style="font-size: 0.75rem; color: var(--text-muted);">&gt; SELECT EXEC: pong.sh, snake.sh, radio.sh</div>
+      
+      <canvas id="arcadeCanvas" class="arcade-screen" width="320" height="200"></canvas>
+
+      <!-- Controles Táctiles Integrados para Móvil -->
+      <div id="touchControls" class="arcade-controls" style="display: none;">
+        <button class="arcade-btn" id="btnUp">▲</button>
+        <button class="arcade-btn" id="btnDown">▼</button>
+        <button class="arcade-btn" id="btnLeft">◄</button>
+        <button class="arcade-btn" id="btnRight">►</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 
   <div class="footer">MEOW ADMINISTRADOR PRO v1.0 // MOUSTACHE DE CHAT LAB</div>
 
