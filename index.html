@@ -152,6 +152,97 @@
       font-family: var(--font-mono); font-size: 0.7rem; padding: 2px 4px; border-radius: 3px;
     }
     .footer { text-align: center; font-size: 0.65rem; color: var(--text-muted); margin-top: 8px; }
+    
+    /* ==========================================================================
+   CASSETTE PLAYER MODULE (FLAC AUDIO ENGINE)
+   ========================================================================== */
+.cassette-deck {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cassette-body {
+  width: 100%;
+  max-width: 280px;
+  height: 110px;
+  background: var(--panel-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+.cassette-label {
+  background: var(--border-color);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 3px 6px;
+  text-align: center;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cassette-window {
+  background: #000;
+  border: 1px solid var(--border-color);
+  height: 48px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.tape-reel {
+  width: 32px;
+  height: 32px;
+  border: 2px dashed var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tape-reel::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 50%;
+}
+
+/* Animación de giro de cinta */
+.cassette-body.playing .tape-reel {
+  animation: spinReel 2s linear infinite;
+}
+
+@keyframes spinReel {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.player-controls {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+    
   </style>
 </head>
 <body>
