@@ -295,3 +295,143 @@ function stopFlacTape() {
   }
 }
 
+/* ==========================================================================
+   EXEC: GAMES.SH (PONG, SNAKE & LO-FI RADIO)
+   ========================================================================== */
+let gameInterval = null;
+let currentGame = null;
+
+function loadGame(gameType) {
+  clearInterval(gameInterval);
+  currentGame = gameType;
+  
+  const canvas = document.getElementById('arcadeCanvas');
+  const ctx = canvas.getContext('2d');
+  const title = document.getElementById('gameTitle');
+  const controls = document.getElementById('touchControls');
+
+  // Limpiar pantalla
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (gameType === 'pong') {
+    title.innerText = '> EXEC: pong.sh (PONG ARCADE)';
+    controls.style.display = 'flex';
+    initPong(canvas, ctx);
+  } else if (gameType === 'snake') {
+    title.innerText = '> EXEC: snake.sh (SNAKE ARCADE)';
+    controls.style.display = 'flex';
+    initSnake(canvas, ctx);
+  } else if (gameType === 'radio') {
+    title.innerText = '> EXEC: radio.sh (LO-FI STREAMING)';
+    controls.style.display = 'none';
+    initRadio(canvas, ctx);
+  }
+}
+
+/* 1. 🕹️ PONG.SH */
+function initPong(canvas, ctx) {
+  let paddleY = 80;
+  let ballX = 160, ballY = 100;
+  let ballDX = 3, ballDY = 2;
+
+  document.getElementById('btnUp').onclick = () => { paddleY = Math.max(0, paddleY - 15); };
+  document.getElementById('btnDown').onclick = () => { paddleY = Math.min(canvas.height - 40, paddleY + 15); };
+
+  gameInterval = setInterval(() => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Obtener color dinámico del tema activo
+    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
+    ctx.fillStyle = mainColor;
+
+    // Raqueta Jugador
+    ctx.fillRect(10, paddleY, 8, 40);
+    // Bola
+    ctx.fillRect(ballX, ballY, 6, 6);
+
+    ballX += ballDX;
+    ballY += ballDY;
+
+    // Rebotes techo/piso
+    if (ballY <= 0 || ballY >= canvas.height - 6) ballDY *= -1;
+
+    // Rebote raqueta
+    if (ballX <= 18 && ballY >= paddleY && ballY <= paddleY + 40) ballDX *= -1;
+
+    // Reinicio si sale
+    if (ballX <= 0 || ballX >= canvas.width) {
+      ballX = 160; ballY = 100;
+    }
+  }, 1000 / 30);
+}
+
+/* 2. 🐍 SNAKE.SH */
+function initSnake(canvas, ctx) {
+  let snake = [{x: 160, y: 100}];
+  let dx = 10, dy = 0;
+  let food = {x: 80, y: 80};
+
+  document.getElementById('btnUp').onclick = () => { if (dy === 0) { dx = 0; dy = -10; } };
+  document.getElementById('btnDown').onclick = () => { if (dy === 0) { dx = 0; dy = 10; } };
+  document.getElementById('btnLeft').onclick = () => { if (dx === 0) { dx = -10; dy = 0; } };
+  document.getElementById('btnRight').onclick = () => { if (dx === 0) { dx = 10; dy = 0; } };
+
+  gameInterval = setInterval(() => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
+
+    // Mover Serpiente
+    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+    snake.unshift(head);
+
+    // Comer comida
+    if (head.x === food.x && head.y === food.y) {
+      food = {
+        x: Math.floor(Math.random() * (canvas.width / 10)) * 10,
+        y: Math.floor(Math.random() * (canvas.height / 10)) * 10
+      };
+    } else {
+      snake.pop();
+    }
+
+    // Dibujar Serpiente
+    ctx.fillStyle = mainColor;
+    snake.forEach(part => ctx.fillRect(part.x, part.y, 8, 8));
+
+    // Dibujar Comida
+    ctx.fillStyle = '#ff3366';
+    ctx.fillRect(food.x, food.y, 8, 8);
+
+    // Choque pared
+    if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+      snake = [{x: 160, y: 100}];
+      dx = 10; dy = 0;
+    }
+  }, 1000 / 12);
+}
+
+/* 3. 📻 RADIO.SH (LO-FI) */
+function initRadio(canvas, ctx) {
+  let bars = Array(20).fill(10);
+
+  gameInterval = setInterval(() => {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const mainColor = getComputedStyle(document.body).getPropertyValue('--border-color').trim() || '#00ff66';
+    ctx.fillStyle = mainColor;
+
+    // Dibujar ecualizador visual dinámico
+    bars = bars.map(() => Math.floor(Math.random() * 120) + 10);
+    bars.forEach((height, index) => {
+      ctx.fillRect(20 + (index * 14), canvas.height - height - 20, 10, height);
+    });
+
+    ctx.font = '12px Courier New';
+    ctx.fillText('STREAMING: Lofi Chill Beats 24/7', 30, 30);
+  }, 100);
+}
