@@ -303,6 +303,43 @@
     </div>
 
     <!-- Pestaña 2: Herramientas Útiles (TOOLS.EXE) -->
+    
+    <!-- MÓDULO CASSETTE PLAYER FLAC -->
+<div class="stats-box">
+  <div>[📼] CASSETTE DECK // FLAC PLAYER</div>
+  <hr style="border:0; border-top:1px dashed var(--border-color); margin: 6px 0;" />
+  
+  <div class="cassette-deck">
+    <!-- Reproductor Cassette Visual -->
+    <div id="cassetteDeck" class="cassette-body">
+      <div id="cassetteTitle" class="cassette-label">NO TAPE LOADED</div>
+      <div class="cassette-window">
+        <div class="tape-reel"></div>
+        <div style="font-size: 0.6rem; color: var(--text-muted);">&lt; FLAC &gt;</div>
+        <div class="tape-reel"></div>
+      </div>
+    </div>
+
+    <!-- Controles Analógicos -->
+    <div class="player-controls">
+      <button class="btn-tui" onclick="playFlacTape()">[PLAY]</button>
+      <button class="btn-tui" onclick="pauseFlacTape()">[PAUSE]</button>
+      <button class="btn-tui alert" onclick="stopFlacTape()">[STOP]</button>
+    </div>
+
+    <!-- Selector de Archivo FLAC Local -->
+    <div style="width: 100%; margin-top: 10px;">
+      <label style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 4px;">
+        &gt; MOUNT TAPE (.FLAC / .WAV / .MP3):
+      </label>
+      <input type="file" id="flacFileInput" accept="audio/flac, audio/wav, audio/mpeg" class="input-tui" onchange="loadFlacAudio(event)" />
+    </div>
+
+    <!-- Elemento de Audio Oculto -->
+    <audio id="audioEngine" style="display: none;"></audio>
+  </div>
+</div>
+
     <div id="tab-tools" class="tab-content" style="display: none;">
       <div class="scrollable-area">
         <div class="stats-box">
