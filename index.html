@@ -158,13 +158,19 @@ body {
   overflow: hidden; /* Mantiene el marco estático */
 }
 
-/* Área interna donde se listan los avisos */
-#logsContainer {
-  flex: 1;
-  overflow-y: auto; /* Permite scroll solo en los mensajes */
-  overscroll-behavior-y: contain; /* Bloquea el rebote al llegar al final de la lista */
-  padding-right: 4px;
+#logsContainer::-webkit-scrollbar {
+  width: 6px;
 }
+
+#logsContainer::-webkit-scrollbar-track {
+  background: var(--panel-bg);
+}
+
+#logsContainer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
 
 
     /* Navegación por Pestañas */
